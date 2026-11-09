@@ -250,7 +250,7 @@ m ./scripts/kconfig/merge_config.sh $DEFCONFIGS vendor/${TARGET}_GKI.config
 scripts/config --file out/.config \
     --set-str LOCALVERSION "-${KERNEL_NAME}$(get_trees_rev)" \
     -d LOCALVERSION_AUTO \
-    -e CONFIG_KSU
+    -m CONFIG_KSU
 $NO_LTO && {
     scripts/config --file out/.config \
         --set-str LOCALVERSION "-${KERNEL_NAME}-nolto$(get_trees_rev)" \
