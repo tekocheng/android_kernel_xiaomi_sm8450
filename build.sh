@@ -252,7 +252,7 @@ m ./scripts/kconfig/merge_config.sh $DEFCONFIGS vendor/${TARGET}_GKI.config
 scripts/config --file out/.config \
     --set-str LOCALVERSION "-$BRANCH" \
     -d LOCALVERSION_AUTO \
-    -m CONFIG_KSU
+    -e CONFIG_KSU
 $NO_LTO && {
     scripts/config --file out/.config \
         --set-str LOCALVERSION "-${BRANCH}-nolto" \
