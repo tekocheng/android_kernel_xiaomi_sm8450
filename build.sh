@@ -7,8 +7,7 @@ SECONDS=0 # start builtin bash timer
 KP_ROOT="$(realpath ../..)"
 TC_DIR="$KP_ROOT/prebuilts-master/clang/host/linux-x86/clang-r596125"
 PREBUILTS_DIR="$KP_ROOT/prebuilts/kernel-build-tools/linux-x86"
-BRANCH="calcite"
-KERNEL_NAME="calcite"
+BRANCH="$(git branch --show-current)"
 MODULES_REPO="sm8450-modules"
 DT_REPO="sm8450-devicetrees"
 
@@ -105,17 +104,19 @@ echo_e() { echo -e "\n\033[1;31m $1\033[0m\n"; }
 
 get_trees_rev() {
     kernel_rev="$(git rev-parse HEAD | cut -c1-10)"
+    [[ -n "$(git --no-optional-locks status -uno --porcelain)" ]] && kernel_rev+="+"
 
     modules_rev="$(git -C ../$MODULES_REPO rev-parse HEAD | cut -c1-8)"
+    [[ -n "$(git -C ../$MODULES_REPO --no-optional-locks status -uno --porcelain)" ]] && modules_rev+="+"
 
     dt_rev="$(git -C ../$DT_REPO rev-parse HEAD | cut -c1-8)"
+    [[ -n "$(git -C ../$DT_REPO --no-optional-locks status -uno --porcelain)" ]] && dt_rev+="+"
 
     echo "-${kernel_rev}-m${modules_rev}-d${dt_rev}"
 }
 
 m() {
     make -j$(nproc --all) O=out ARCH=arm64 LLVM=1 LLVM_IAS=1 \
-        KBUILD_BUILD_USER=github KBUILD_BUILD_HOST=ubuntu \
         DTC_EXT="$PREBUILTS_DIR/bin/dtc" \
         DTC_OVERLAY_TEST_EXT="$PREBUILTS_DIR/bin/ufdt_apply_overlay" \
         TARGET_PRODUCT=$TARGET $@ || exit $?
@@ -139,7 +140,7 @@ build_modules() {
         mv "$ksu_path" out
         echo_i "Copied to out/kernelsu.ko"
     else
-        echo_e "Unable to locate KernelSU module!"
+        echo_e "Unable to locate ksu module!"
     fi
 
     echo_i "Building techpack modules..."
@@ -236,6 +237,7 @@ build_dtbs() {
 ##
 
 export PATH="$TC_DIR/bin:$PREBUILTS_DIR/bin:$PATH"
+export LOCALVERSION="$(get_trees_rev)"
 
 $DO_CLEAN && {
     rm -rf out $MODULES_REPO
@@ -248,12 +250,12 @@ echo_i "Generating config..."
 m $DEFCONFIG
 m ./scripts/kconfig/merge_config.sh $DEFCONFIGS vendor/${TARGET}_GKI.config
 scripts/config --file out/.config \
-    --set-str LOCALVERSION "-${KERNEL_NAME}$(get_trees_rev)" \
+    --set-str LOCALVERSION "-$BRANCH" \
     -d LOCALVERSION_AUTO \
     -m CONFIG_KSU
 $NO_LTO && {
     scripts/config --file out/.config \
-        --set-str LOCALVERSION "-${KERNEL_NAME}-nolto$(get_trees_rev)" \
+        --set-str LOCALVERSION "-${BRANCH}-nolto" \
         -d LTO_CLANG_FULL -e LTO_NONE
     echo_i "Disabled LTO!"
 }
